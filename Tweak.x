@@ -57,6 +57,9 @@ static void batchSwizzlingOnClass(Class cls, NSArray<NSString*>*origSelectors, I
         [[NSUserDefaults standardUserDefaults] setBool:true forKey:@"custom_voice_upload"];
     }
     [BHTManager cleanCache];
+    if ([BHTManager FLEX]) {
+        [[%c(FLEXManager) sharedManager] showExplorer];
+    }
     return true;
 }
 
@@ -97,6 +100,9 @@ static void batchSwizzlingOnClass(Class cls, NSArray<NSString*>*origSelectors, I
         [image setContentMode:UIViewContentModeCenter];
         [self.window addSubview:image];
     }
+    if ([BHTManager FLEX]) {
+        [[%c(FLEXManager) sharedManager] showExplorer];
+    }
 }
 %end
 
@@ -110,6 +116,21 @@ static void batchSwizzlingOnClass(Class cls, NSArray<NSString*>*origSelectors, I
             [tabView setHidden:true];
         }
     }
+}
+
+- (void)setTabBarHidden:(BOOL)arg1 withDuration:(CGFloat)arg2 {
+    if ([BHTManager stopHidingTabBar]) {
+        return;
+    }
+    
+    return %orig;
+}
+- (void)setTabBarHidden:(BOOL)arg1 {
+    if ([BHTManager stopHidingTabBar]) {
+        return;
+    }
+    
+    return %orig;
 }
 %end
 
@@ -819,24 +840,12 @@ static void batchSwizzlingOnClass(Class cls, NSArray<NSString*>*origSelectors, I
 // Twitter save all the features and keys in side JSON file in bundle of application fs_embedded_defaults_production.json, and use it in TFNTwitterAccount class but with DM voice maybe developers forget to add boolean variable in the class, so i had to change it from the file.
 // also, you can find every key for every feature i used in this tweak, i can remove all the codes below and find every key for it but I'm lazy to do that, :)
 - (BOOL)boolForKey:(NSString *)key {
-    if ([key hasPrefix:@"ad_formats_"] ||
-        [key hasPrefix:@"ad_"] ||
-        [key containsString:@"_ads_"] ||
-        [key isEqualToString:@"ads_enabled"]) {
-        if ([BHTManager HidePromoted]) return false;
+    if ([key isEqualToString:@"edit_tweet_enabled"] || [key isEqualToString:@"edit_tweet_ga_composition_enabled"] || [key isEqualToString:@"edit_tweet_pdp_dialog_enabled"] || [key isEqualToString:@"edit_tweet_upsell_enabled"]) {
+        return true;
     }
-
-    if ([key isEqualToString:@"voice_replies_enabled"] || [key isEqualToString:@"voice_creation_enabled"]) {
-        if ([BHTManager voiceCreationEnabled]) return true;
-    }
-
-
-    if ([key isEqualToString:@"dm_reply_later_enabled"]) {
-        if ([BHTManager dmReplyLater]) return true;
-    }
-
-    if ([key isEqualToString:@"media_upload_4k_enabled"]) {
-        if ([BHTManager mediaUpload4k]) return true;
+    
+    if ([key isEqualToString:@"conversational_replies_ios_pinned_replies_consumption_enabled"] || [key isEqualToString:@"conversational_replies_ios_pinned_replies_creation_enabled"]) {
+        return true;
     }
     
     return %orig;
@@ -960,12 +969,12 @@ static void batchSwizzlingOnClass(Class cls, NSArray<NSString*>*origSelectors, I
 %hook T1TweetComposeViewController
 - (void)_t1_didTapSendButton:(UIButton *)tweetButton {
     if ([BHTManager TweetConfirm]) {
-        [SimpleAlert makeAlert:^(SimpleAlert *make) {
-            [make message:[[BHTBundle sharedBundle] localizedStringForKey:@"CONFIRM_ALERT_MESSAGE"]];
-            [[make button:[[BHTBundle sharedBundle] localizedStringForKey:@"YES_BUTTON_TITLE"]] handler:^(NSArray<NSString *> *strings) {
+        [%c(FLEXAlert) makeAlert:^(FLEXAlert *make) {
+            make.message([[BHTBundle sharedBundle] localizedStringForKey:@"CONFIRM_ALERT_MESSAGE"]);
+            make.button([[BHTBundle sharedBundle] localizedStringForKey:@"YES_BUTTON_TITLE"]).handler(^(NSArray<NSString *> *strings) {
                 %orig;
-            }];
-            [[make button:[[BHTBundle sharedBundle] localizedStringForKey:@"NO_BUTTON_TITLE"]] cancelStyle];
+            });
+            make.button([[BHTBundle sharedBundle] localizedStringForKey:@"NO_BUTTON_TITLE"]).cancelStyle();
         } showFrom:topMostController()];
     } else {
         return %orig;
@@ -973,12 +982,12 @@ static void batchSwizzlingOnClass(Class cls, NSArray<NSString*>*origSelectors, I
 }
 - (void)_t1_handleTweet {
     if ([BHTManager TweetConfirm]) {
-        [SimpleAlert makeAlert:^(SimpleAlert *make) {
-            [make message:[[BHTBundle sharedBundle] localizedStringForKey:@"CONFIRM_ALERT_MESSAGE"]];
-            [[make button:[[BHTBundle sharedBundle] localizedStringForKey:@"YES_BUTTON_TITLE"]] handler:^(NSArray<NSString *> *strings) {
+        [%c(FLEXAlert) makeAlert:^(FLEXAlert *make) {
+            make.message([[BHTBundle sharedBundle] localizedStringForKey:@"CONFIRM_ALERT_MESSAGE"]);
+            make.button([[BHTBundle sharedBundle] localizedStringForKey:@"YES_BUTTON_TITLE"]).handler(^(NSArray<NSString *> *strings) {
                 %orig;
-            }];
-            [[make button:[[BHTBundle sharedBundle] localizedStringForKey:@"NO_BUTTON_TITLE"]] cancelStyle];
+            });
+            make.button([[BHTBundle sharedBundle] localizedStringForKey:@"NO_BUTTON_TITLE"]).cancelStyle();
         } showFrom:topMostController()];
     } else {
         return %orig;
@@ -1002,12 +1011,12 @@ static void batchSwizzlingOnClass(Class cls, NSArray<NSString*>*origSelectors, I
 %hook TUIFollowControl
 - (void)_followUser:(id)arg1 event:(id)arg2 {
     if ([BHTManager FollowConfirm]) {
-        [SimpleAlert makeAlert:^(SimpleAlert *make) {
-            [make message:[[BHTBundle sharedBundle] localizedStringForKey:@"CONFIRM_ALERT_MESSAGE"]];
-            [[make button:[[BHTBundle sharedBundle] localizedStringForKey:@"YES_BUTTON_TITLE"]] handler:^(NSArray<NSString *> *strings) {
+        [%c(FLEXAlert) makeAlert:^(FLEXAlert *make) {
+            make.message([[BHTBundle sharedBundle] localizedStringForKey:@"CONFIRM_ALERT_MESSAGE"]);
+            make.button([[BHTBundle sharedBundle] localizedStringForKey:@"YES_BUTTON_TITLE"]).handler(^(NSArray<NSString *> *strings) {
                 %orig;
-            }];
-            [[make button:[[BHTBundle sharedBundle] localizedStringForKey:@"NO_BUTTON_TITLE"]] cancelStyle];
+            });
+            make.button([[BHTBundle sharedBundle] localizedStringForKey:@"NO_BUTTON_TITLE"]).cancelStyle();
         } showFrom:topMostController()];
     } else {
         return %orig;
@@ -1019,12 +1028,12 @@ static void batchSwizzlingOnClass(Class cls, NSArray<NSString*>*origSelectors, I
 %hook TTAStatusInlineFavoriteButton
 - (void)didTap {
     if ([BHTManager LikeConfirm]) {
-        [SimpleAlert makeAlert:^(SimpleAlert *make) {
-            [make message:[[BHTBundle sharedBundle] localizedStringForKey:@"CONFIRM_ALERT_MESSAGE"]];
-            [[make button:[[BHTBundle sharedBundle] localizedStringForKey:@"YES_BUTTON_TITLE"]] handler:^(NSArray<NSString *> *strings) {
+        [%c(FLEXAlert) makeAlert:^(FLEXAlert *make) {
+            make.message([[BHTBundle sharedBundle] localizedStringForKey:@"CONFIRM_ALERT_MESSAGE"]);
+            make.button([[BHTBundle sharedBundle] localizedStringForKey:@"YES_BUTTON_TITLE"]).handler(^(NSArray<NSString *> *strings) {
                 %orig;
-            }];
-            [[make button:[[BHTBundle sharedBundle] localizedStringForKey:@"NO_BUTTON_TITLE"]] cancelStyle];
+            });
+            make.button([[BHTBundle sharedBundle] localizedStringForKey:@"NO_BUTTON_TITLE"]).cancelStyle();
         } showFrom:topMostController()];
     } else {
         return %orig;
@@ -1035,12 +1044,12 @@ static void batchSwizzlingOnClass(Class cls, NSArray<NSString*>*origSelectors, I
 %hook T1StatusInlineFavoriteButton
 - (void)didTap {
     if ([BHTManager LikeConfirm]) {
-        [SimpleAlert makeAlert:^(SimpleAlert *make) {
-            [make message:[[BHTBundle sharedBundle] localizedStringForKey:@"CONFIRM_ALERT_MESSAGE"]];
-            [[make button:[[BHTBundle sharedBundle] localizedStringForKey:@"YES_BUTTON_TITLE"]] handler:^(NSArray<NSString *> *strings) {
+        [%c(FLEXAlert) makeAlert:^(FLEXAlert *make) {
+            make.message([[BHTBundle sharedBundle] localizedStringForKey:@"CONFIRM_ALERT_MESSAGE"]);
+            make.button([[BHTBundle sharedBundle] localizedStringForKey:@"YES_BUTTON_TITLE"]).handler(^(NSArray<NSString *> *strings) {
                 %orig;
-            }];
-            [[make button:[[BHTBundle sharedBundle] localizedStringForKey:@"NO_BUTTON_TITLE"]] cancelStyle];
+            });
+            make.button([[BHTBundle sharedBundle] localizedStringForKey:@"NO_BUTTON_TITLE"]).cancelStyle();
         } showFrom:topMostController()];
     } else {
         return %orig;
@@ -1051,12 +1060,12 @@ static void batchSwizzlingOnClass(Class cls, NSArray<NSString*>*origSelectors, I
 %hook T1ImmersiveExploreCardView
 - (void)handleDoubleTap:(id)arg1 {
     if ([BHTManager LikeConfirm]) {
-        [SimpleAlert makeAlert:^(SimpleAlert *make) {
-            [make message:[[BHTBundle sharedBundle] localizedStringForKey:@"CONFIRM_ALERT_MESSAGE"]];
-            [[make button:[[BHTBundle sharedBundle] localizedStringForKey:@"YES_BUTTON_TITLE"]] handler:^(NSArray<NSString *> *strings) {
+        [%c(FLEXAlert) makeAlert:^(FLEXAlert *make) {
+            make.message([[BHTBundle sharedBundle] localizedStringForKey:@"CONFIRM_ALERT_MESSAGE"]);
+            make.button([[BHTBundle sharedBundle] localizedStringForKey:@"YES_BUTTON_TITLE"]).handler(^(NSArray<NSString *> *strings) {
                 %orig;
-            }];
-            [[make button:[[BHTBundle sharedBundle] localizedStringForKey:@"NO_BUTTON_TITLE"]] cancelStyle];
+            });
+            make.button([[BHTBundle sharedBundle] localizedStringForKey:@"NO_BUTTON_TITLE"]).cancelStyle();
         } showFrom:topMostController()];
     } else {
         return %orig;
@@ -1067,12 +1076,12 @@ static void batchSwizzlingOnClass(Class cls, NSArray<NSString*>*origSelectors, I
 %hook T1TweetDetailsViewController
 - (void)_t1_toggleFavoriteOnCurrentStatus {
     if ([BHTManager LikeConfirm]) {
-        [SimpleAlert makeAlert:^(SimpleAlert *make) {
-            [make message:[[BHTBundle sharedBundle] localizedStringForKey:@"CONFIRM_ALERT_MESSAGE"]];
-            [[make button:[[BHTBundle sharedBundle] localizedStringForKey:@"YES_BUTTON_TITLE"]] handler:^(NSArray<NSString *> *strings) {
+        [%c(FLEXAlert) makeAlert:^(FLEXAlert *make) {
+            make.message([[BHTBundle sharedBundle] localizedStringForKey:@"CONFIRM_ALERT_MESSAGE"]);
+            make.button([[BHTBundle sharedBundle] localizedStringForKey:@"YES_BUTTON_TITLE"]).handler(^(NSArray<NSString *> *strings) {
                 %orig;
-            }];
-            [[make button:[[BHTBundle sharedBundle] localizedStringForKey:@"NO_BUTTON_TITLE"]] cancelStyle];
+            });
+            make.button([[BHTBundle sharedBundle] localizedStringForKey:@"NO_BUTTON_TITLE"]).cancelStyle();
         } showFrom:topMostController()];
     } else {
         return %orig;
@@ -1084,6 +1093,19 @@ static void batchSwizzlingOnClass(Class cls, NSArray<NSString*>*origSelectors, I
 %hook TFNTwitterToastNudgeExperimentModel
 - (BOOL)shouldShowShowUndoTweetSentToast {
     return [BHTManager UndoTweet] ? true : %orig;
+}
+%end
+
+// MARK: Old tweet style
+%hook TTACoreAnatomyFeatures
+- (BOOL)isUnifiedCardEnabled {
+    return [BHTManager OldStyle] ? false : %orig;
+}
+- (BOOL)isModernStatusViewsQuoteTweetEnabled {
+    return [BHTManager OldStyle] ? false : %orig;
+}
+- (BOOL)isEdgeToEdgeContentEnabled {
+    return [BHTManager OldStyle] ? false : %orig;
 }
 %end
 
@@ -1114,9 +1136,9 @@ static void batchSwizzlingOnClass(Class cls, NSArray<NSString*>*origSelectors, I
         }];
         
         if ([backingStore respondsToSelector:@selector(insertSection:atIndex:)]) {
-            [backingStore insertSection:0 atIndex:1];
+            [backingStore insertSection:0 atIndex:0];
         } else {
-            [backingStore _tfn_insertSection:0 atIndex:1];
+            [backingStore _tfn_insertSection:0 atIndex:0];
         }
         if ([backingStore respondsToSelector:@selector(insertItem:atIndexPath:)]) {
             [backingStore insertItem:bhtwitter atIndexPath:[NSIndexPath indexPathForRow:0 inSection:0]];
@@ -1132,7 +1154,7 @@ static void batchSwizzlingOnClass(Class cls, NSArray<NSString*>*origSelectors, I
     %orig;
     if ([self.sections count] == 2) {
         TFNItemsDataViewControllerBackingStore *DataViewControllerBackingStore = self.backingStore;
-        [DataViewControllerBackingStore insertSection:0 atIndex:1];
+        [DataViewControllerBackingStore insertSection:0 atIndex:0];
         [DataViewControllerBackingStore insertItem:@"Row 0 " atIndexPath:[NSIndexPath indexPathForRow:0 inSection:0]];
         [DataViewControllerBackingStore insertItem:@"Row1" atIndexPath:[NSIndexPath indexPathForRow:1 inSection:0]];
     }
@@ -1320,4 +1342,3 @@ static void batchSwizzlingOnClass(Class cls, NSArray<NSString*>*origSelectors, I
     }];
     %init;
 }
-
